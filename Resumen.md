@@ -160,14 +160,186 @@ Los resultados de estos se unen (join) para construir la solución al cómputo i
 
 ### Canales / Mensajes
 
+Do not communicate by sharing memory; instead, share memory by communicating.
+
+#### Modelos de comunicación
+
+- Comunicación
+  - Sincrónica
+  - Asincrónica (Buffer)
+- Direccionamiento . Cómo se determina a quién dirigir un mensaje?
+  - Simétrico
+  - Asimétrico
+  - Sin direccionamiento (matcheo por estructura del mensaje)
+- Flujo de datos
+  - Unidireccional
+  - Bidireccional
+
+#### Otros
+
+- **Selective Input**: Permite escuchar en varios canales de forma bloqueante y desbloquearse con el primero que recibe un mensaje
+
 ### Actores
+
+- **Actor**
+  - Primitiva principal
+  - Liviano
+  - Encapsula comportamiento y estado
+  - Compuesto por: **Address** y **Mailbox**
+  - Es aislado (no comparte memoria), su estado es privado
+  - Procesa un mensaje a la vez
+- **Mensaje**
+  - via de comunicación entre actores
+  - procesados de forma asincrona
+
+#### En Rust
+
+- Cada actor se ejecuta dentro de un arbitrer
+- Se ejecutan en un contexto de ejecución
 
 ## Sistemas distribuidos
 
 ### Exclusion mutua
 
+#### Algoritmo Centralizado
+
+1. Un proceso es elegido coordinador
+2. Cuando un proceso quiere entrar a la SC, envía un mensaje al coordinador
+3. Si no hay ningún proceso en la SC, el coordinador envía OK; si hay, el coordinador no envía respuesta hasta que se libere la SC
+
+#### Algoritmo Distribuido
+
+Cuando un proceso quiere entrar en una sección crítica, envía un [mensaje](# "con el nombre de la sección crítica, el número de proceso y el timestamp") a todos
+
+1. Si no está en la CS y no quiere entrar, responde OK
+2. Si está en la CS, no responde y encola el mensaje. Cuando sale de la SC, responde OK
+3. Si quiere entrar en la CS, compara el timestamp y gana el menor
+
+#### Algoritmo Token Ring
+
+- Se conforma un anillo mediante conexiones punto a punto
+- Al inicializar, el proceso 0 recibe un token que va circulando por el anillo
+- Sólo el proceso que tiene el token puede entrar a la SC
+- Cuando el proceso sale de la SC, continua circulando el token
+- El proceso no puede entrar a otra SC con el mismo token
+
 ### Elección de líder
 
+Varios algoritmos requieren de un coordinador con un rol especial (ej: algoritmos de exclusión mutua distribuida).
+
+#### Algoritmo Bully
+
+Cuando un proceso P nota que el coordinador no responde, inicia el proceso de elección:
+
+1. P envía el mensaje ELECTION a todos los procesos que tengan número mayor
+2. Si nadie responde, P gana la elección y es el nuevo coordinador
+3. Si contesta algún proceso con número mayor, éste continúa con el proceso y P finaliza
+4. El nuevo coordinador se anuncia con un mensaje COORDINATOR
+
+Siempre gana el proceso con mayor número.
+
+#### Algoritmo Ring
+
+1. Los procesos están ordenados lógicamente; cada uno conoce a su sucesor
+2. Cuando un proceso nota que el coordinador falló, arma un mensaje ELECTION que contiene su número de proceso y lo envía al sucesor
+3. El proceso que recibe el mensaje, agrega su número de proceso a la lista dentro del mensaje y lo envía al sucesor
+4. Cuando el proceso original recibe el mensaje, lo cambia a COORDINATOR y lo envía. El nuevo coordinador es el proceso de mayor número de la lista. La lista se mantiene para informar el nuevo anillo
+5. Cuando este mensaje finaliza la circulación, se elimina del anillo
+
 ### Transacciones
+
+Sistema está conformado por un conjunto de procesos independientes; cada uno puede fallar aleatoriamente.
+
+#### Propiedades ACID
+
+- **Atomicity**: La transacción se ejecuta completamente o no se ejecuta en absoluto
+- **Consistency**: La transacción debe dejar el sistema en un estado consistente
+- **Isolation**: Las transacciones concurrentes no deben interferir entre sí
+- **Durability**: Los efectos de una transacción deben ser permanentes
+
+#### Implementación
+
+##### Private Workspace
+
+- Al iniciar una transacción, el proceso recibe una copia de todos los archivos a los cuales tiene acceso
+- Hasta que hace commit, el proceso trabaja con la copia
+- Al hacer commit, se persisten los cambios
+- Desventaja: extremadamente costoso salvo por optimizaciones
+
+##### Write-ahead Log
+
+- Los archivos se modifican in place, pero se mantiene una lista de los cambios aplicados (primero se escribe la lista y luego se modifica el archivo)
+- Al commitear la transacción, se escribe un registro commit en el log
+- Si la transacción se aborta, se lee el log de atrás hacia adelante para deshacer los cambios (rollback)
+
+##### Commit en dos fases
+
+- El coordinador es aquel proceso que ejecuta la transacción
+- Fase 1: **PREPARE**
+  1. El coordinador escribe prepare en su log y envía el mensaje prepare al resto de los procesos
+  2. Los procesos que reciben el mensaje, escriben **READY** en el log y envían ready al coordinador
+- Fase 2: **COMMIT**
+  1. El coordinador hace los cambios y envía el mensaje commit al resto de los procesos
+  2. Los procesos que reciben el mensaje, escriben commit en el log y envían finished al coordinador
+
+#### Control de Concurrencia
+
+##### Lockeo en 2 fases
+
+- Fase de expansión: se toman todos los locks a usar
+- Fase de contracción: se liberan todos los locks (no se pueden tomar nuevos locks)
+- Garantiza propiedad serializable para las transacciones
+- Pueden ocurrir deadlocks
+- Strict two-phase locking: la contracción ocurre después del commit
+
+##### Concurrencia Optimista
+
+- Se asume que no habrá conflictos
+- Al finalizar la transacción, se chequea si hubo conflictos
+
+> Libre de deadlocks, pero costoso si hay conflictos
+
+##### Timestamps
+
+- Existen timestamps únicos globales para garantizar orden (ver algoritmo de relojes de Lamport)
+- Cada archivo tiene dos timestamps: lectura y escritura y qué transacción hizo la última operación en cada caso
+- Cada transacción al iniciarse recibe un timestamp
+- Se compara el timestamp de la transacción con los timestamps del archivo:
+  - Si es mayor, la transacción está en orden y se procede con la operación
+  - Si es menor, la transacción se aborta
+- Al commitear se actualizan los timestamps del archivo
+
+#### Detección de Deadlocks
+
+##### Algoritmo centralizado
+
+- El proceso coordinador mantiene el grafo de uso de recursos
+- Los procesos envían mensajes al coordinador cuando obtienen / liberan un recurso y el coordinador actualiza el grafo
+- Si se genera un ciclo, hay deadlock
+- Problema: los mensajes pueden llegar llegar desordenados y generar falsos deadlocks
+- Posible solución: utilizar timestamps globales para ordenar los mensajes (algoritmo de Lamport)
+
+##### Algoritmo distribuido
+
+- Cuando un proceso debe esperar por un recurso, envía un probe message al proceso que tiene el recurso.
+  - El mensaje contiene: id del proceso que se bloquea, id del proceso que envía el mensaje y id del proceso destinatario
+- Al recibir el mensaje, el proceso actualiza el id del proceso que envía y el id del destinatario y lo envía a los procesos que tienen el recurso que necesita
+- Si el mensaje llega al proceso original, tenemos un ciclo en el grafo
+
+#### Prevención de Deadlocks
+
+##### wait-die
+
+- Se asigna un timestamp único a cada transacción
+- Al querer tomar un recurso que posee otro proceso, si es:
+  - Más viejo: espera
+  - Más reciente: aborta la transacción
+
+##### Wound-wait
+
+- Se asigna un timestamp único a cada transacción
+- Al querer tomar un recurso que posee otro proceso, si es:
+  - Más viejo: aborta la transacción del más reciente y toma el recurso
+  - Más reciente: espera
 
 ### Ambientes Distribuidos
