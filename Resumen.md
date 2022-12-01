@@ -343,3 +343,52 @@ Sistema está conformado por un conjunto de procesos independientes; cada uno pu
   - Más reciente: espera
 
 ### Ambientes Distribuidos
+
+#### Entidades
+
+- **Entidad**: Es la unidad de cómputo de ambiente informático distribuido
+  > Puede ser un proceso, un procesador, etc.
+  - **Capacidades**
+    - Lectura y escritura de memoria local
+    - Procesamiento local
+    - [Comunicación](# preparación, transmisión y recepción de mensajes)
+    - Setear y resetear un reloj local
+  - **Reactiva**: solo responde a [eventos externos](# mensaje/activación de reloj/impulso espontaneo)
+- **Acción**: Secuencia finita e indivisible de operaciones (atómica)
+- **Regla**: [estado × evento → acción](# Es la relación entre el evento que ocurre y el estado en el que se encuentra la entidad cuando ocurre dicho evento)
+- **Comportamiento**: Es el conjunto de todas las reglas que obedece una entidad
+  > Para cada posible evento y estado debe existir una única regla
+  - Comportamiento Homogéneo: todas las entidades tienen el mismo comportamiento
+- **Comunicación**
+  - Una entidad se comunica con otras entidades mediante mensajes
+  - Puede ocurrir que una entidad sólo pueda comunicarse con un subconjunto del resto de las entidades
+
+#### Axiomas
+
+- **Axiomas**
+  - [Delays de comunicación finitos](# En ausencia de fallas los delays en la comunicación tienen una duración finita)
+  - [Orientación local](# Una entidad puede distinguir entre sus vecinos NOUT y entre sus vecinos NIN)
+- Restricciones de confiabilidad
+  - Entrega garantizada
+  - Confiabilidad parcial: no ocurrirán fallas
+  - Confiabilidad total: no han ocurrido ni ocurrirán fallas
+- Restricciones temporales
+  - Delays de comunicación acotados
+  - Delays de comunicación unitarios
+  - Relojes sincronizados
+
+#### Costo y Complejidad
+
+Son las medidas de comparación de los algoritmos distribuidos
+
+- Cantidad de actividades de comunicación
+  - Cantidad de transmisiones o costo de mensajes, M
+  - Carga de trabajo por entidad y carga de transmisión
+- Tiempo
+  - Tiempo total de ejecución del protocolo
+  - Tiempo ideal de ejecución
+
+#### Conocimiento
+
+Conocimiento local: contenido de la memoria local de x y la información que se deriva
+En ausencia de fallas, el conocimiento no puede perderse
