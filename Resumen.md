@@ -98,6 +98,8 @@ Se definen 2 tipos de propiedades de corrección
 - Bloque de código que se ejecuta de forma atómica
 - Cada objeto tiene un lock asociado, que se utiliza para sincronizar el acceso a los métodos sincrónicos de la clase
 
+<!-- pagebreak -->
+
 ### Paralelismo fork-join
 
 el cómputo (task) es partido en sub-cómputos menores (subtasks).
@@ -196,6 +198,8 @@ Do not communicate by sharing memory; instead, share memory by communicating.
 
 - Cada actor se ejecuta dentro de un arbitrer
 - Se ejecutan en un contexto de ejecución
+
+<!-- pagebreak -->
 
 ## Sistemas distribuidos
 
@@ -341,6 +345,8 @@ Sistema está conformado por un conjunto de procesos independientes; cada uno pu
 - Al querer tomar un recurso que posee otro proceso, si es:
   - Más viejo: aborta la transacción del más reciente y toma el recurso
   - Más reciente: espera
+
+<!-- pagebreak -->
 
 ### Ambientes Distribuidos
 
